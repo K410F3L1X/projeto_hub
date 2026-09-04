@@ -1,0 +1,46 @@
+{
+  "name": "study-hub",
+  "version": "0.2.0",
+  "private": true,
+  "main": "electron/main.js",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "electron:compile": "tsc -p electron/tsconfig.json",
+    "electron:dev": "concurrently -k \"npm run dev\" \"npm run electron:compile && electron .\"",
+    "electron:build": "npm run build && npm run electron:compile && electron-builder --win",
+    "electron:pack": "npm run build && npm run electron:compile && electron-builder --win --dir"
+  },
+  "dependencies": {
+    "next": "^14.2.0",
+    "react": "^18.3.0",
+    "react-dom": "^18.3.0",
+    "react-markdown": "^9.0.0",
+    "remark-gfm": "^4.0.0",
+    "lucide-react": "^0.460.0",
+    "pdf-parse": "^1.1.1",
+    "@google/generative-ai": "^0.21.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "@types/react": "^18.3.0",
+    "@types/react-dom": "^18.3.0",
+    "typescript": "^5.6.0",
+    "tailwindcss": "^3.4.0",
+    "postcss": "^8.4.0",
+    "autoprefixer": "^10.4.0",
+    "eslint": "^8.0.0",
+    "eslint-config-next": "^14.2.0",
+    "electron": "^33.0.0",
+    "electron-builder": "^25.0.0",
+    "concurrently": "^9.0.0"
+  },
+  "build": {
+    "extends": "electron-builder.yml"
+  },
+  "allowScripts": {
+    "electron@33.4.11": true
+  }
+}
