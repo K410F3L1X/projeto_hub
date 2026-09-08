@@ -167,6 +167,48 @@ export async function createVaultFile(path: string, content: string): Promise<vo
   await callTool("create_vault_file", { path, content });
 }
 
+export async function createVaultDirectory(path: string): Promise<void> {
+  await callTool("create_vault_directory", { path: path.trim() });
+}
+
+export async function getAllVaultFolders(): Promise<string[]> {
+  const defaultRoots = [
+    "Biblioteca",
+    "Comunicação",
+    "Conceitos e Definições",
+    "Faculdade",
+    "Inglês",
+    "Pensamentos",
+    "Pessoas e Entidades",
+    "Programação",
+    "Python",
+    "Reservatorio de Dopamina",
+  ];
+
+  const folderSet = new Set<string>(defaultRoots);
+
+  try {
+    const files = await listVaultFiles("", 5000);
+
+    for (const file of files) {
+      const parts = file.split("/");
+      if (parts.length > 1) {
+        let currentPath = "";
+        for (let i = 0; i < parts.length - 1; i++) {
+          const part = parts[i].trim();
+          if (!part || part.startsWith(".")) continue;
+          currentPath = currentPath ? `${currentPath}/${part}` : part;
+          folderSet.add(currentPath);
+        }
+      }
+    }
+  } catch (err) {
+    console.error("Failed to list vault files for folders:", err);
+  }
+
+  return Array.from(folderSet).sort((a, b) => a.localeCompare(b, undefined, { sensitivity: "base" }));
+}
+
 export async function searchVault(query: string): Promise<{ filename: string; score?: number; matches?: { match: { start: number; end: number }; context: string }[] }[]> {
   const data = await callTool("search_vault_simple", { query }) as unknown;
   

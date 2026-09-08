@@ -18,6 +18,7 @@ import {
 import NoteModal from "@/components/NoteModal";
 import PdfUploader from "@/components/PdfUploader";
 import LinkSelector from "@/components/LinkSelector";
+import FolderSelector from "@/components/FolderSelector";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 
@@ -28,27 +29,13 @@ interface RecentInboxNote {
   timestamp: number;
 }
 
-const FOLDERS = [
-  "Conceitos e Definições",
-  "Reservatorio de Dopamina",
-  "Biblioteca",
-  "Pessoas e Entidades",
-  "Faculdade",
-  "Programação",
-  "Python",
-  "Comunicação",
-  "Inglês",
-  "Pensamentos",
-];
-
 type InboxTab = "text" | "pdf";
 
 export default function InboxPage() {
   const [activeTab, setActiveTab] = useState<InboxTab>("text");
   const [content, setContent] = useState("");
   const [title, setTitle] = useState("");
-  const [selectedFolder, setSelectedFolder] = useState(FOLDERS[0]);
-  const [showFolderPicker, setShowFolderPicker] = useState(false);
+  const [selectedFolder, setSelectedFolder] = useState("Programação");
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [recentNotes, setRecentNotes] = useState<RecentInboxNote[]>([]);
@@ -61,7 +48,6 @@ export default function InboxPage() {
   const [pdfError, setPdfError] = useState<string | null>(null);
 
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const folderPickerRef = useRef<HTMLDivElement>(null);
 
   // Auto-generate title from content
   useEffect(() => {
@@ -107,16 +93,7 @@ export default function InboxPage() {
     }, 10);
   };
 
-  // Close folder picker on outside click
-  useEffect(() => {
-    const handleClick = (e: MouseEvent) => {
-      if (folderPickerRef.current && !folderPickerRef.current.contains(e.target as Node)) {
-        setShowFolderPicker(false);
-      }
-    };
-    document.addEventListener("mousedown", handleClick);
-    return () => document.removeEventListener("mousedown", handleClick);
-  }, []);
+
 
   const handleSave = useCallback(async () => {
     const textToSave = aiPreview || content;
@@ -370,41 +347,11 @@ export default function InboxPage() {
           {/* Action Bar */}
           <div className="flex items-center justify-between gap-4">
             {/* Folder Picker */}
-            <div className="relative" ref={folderPickerRef}>
-              <button
-                onClick={() => setShowFolderPicker(!showFolderPicker)}
-                className="flex items-center gap-2 px-4 py-2.5 glass rounded-xl hover:bg-surface-overlay transition-colors text-sm"
-              >
-                <FolderOpen className="w-4 h-4 text-accent-light" />
-                <span className="text-text-secondary">{selectedFolder}</span>
-                <ChevronDown className={`w-3.5 h-3.5 text-text-muted transition-transform ${showFolderPicker ? "rotate-180" : ""}`} />
-              </button>
-
-              {showFolderPicker && (
-                <div className="absolute bottom-full mb-2 left-0 w-64 glass rounded-xl border border-border overflow-hidden shadow-2xl animate-slide-up z-50">
-                  <div className="p-2 max-h-[300px] overflow-y-auto">
-                    {FOLDERS.map((folder) => (
-                      <button
-                        key={folder}
-                        onClick={() => {
-                          setSelectedFolder(folder);
-                          setShowFolderPicker(false);
-                        }}
-                        className={`w-full text-left flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm transition-colors ${
-                          selectedFolder === folder
-                            ? "bg-accent/12 text-accent-light"
-                            : "text-text-secondary hover:bg-surface-overlay hover:text-text-primary"
-                        }`}
-                      >
-                        <FolderOpen className="w-3.5 h-3.5 flex-shrink-0" />
-                        <span className="truncate">{folder}</span>
-                        {selectedFolder === folder && <Check className="w-3.5 h-3.5 ml-auto text-accent-light" />}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
+            {/* Folder Picker with Hierarchical Tree & Creation */}
+            <FolderSelector
+              selectedFolder={selectedFolder}
+              onSelectFolder={setSelectedFolder}
+            />
 
             {/* Action Buttons */}
             <div className="flex items-center gap-2">
@@ -502,7 +449,7 @@ export default function InboxPage() {
                       <p className="text-sm text-text-primary font-medium truncate group-hover:text-white transition-colors">
                         {note.title}
                       </p>
-                      <p className="text-[11px] text-text-muted mt-0.5">{note.folder}</p>
+                      <p className="text-[11px] text-text-muted mt-0.5 truncate">{note.folder}</p>
                     </div>
                   </button>
                 ))}

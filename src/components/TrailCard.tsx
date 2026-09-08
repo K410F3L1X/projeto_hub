@@ -6,6 +6,8 @@ interface TrailCardProps {
   name: string;
   noteCount: number;
   onClick?: () => void;
+  onOpenModal?: (e: React.MouseEvent) => void;
+  isExpanded?: boolean;
   gradient?: string;
 }
 
@@ -35,18 +37,25 @@ const folderEmojis: Record<string, string> = {
   "Pensamentos": "💭",
 };
 
-export default function TrailCard({ name, noteCount, onClick }: TrailCardProps) {
+export default function TrailCard({
+  name,
+  noteCount,
+  onClick,
+  onOpenModal,
+  isExpanded = false,
+}: TrailCardProps) {
   const gradient = folderGradients[name] || "from-violet-600/20 to-indigo-600/20";
   const emoji = folderEmojis[name] || "📁";
 
   return (
-    <button
+    <div
       onClick={onClick}
       className={`
         w-full text-left glass glass-hover rounded-2xl p-5
         bg-gradient-to-br ${gradient}
         group cursor-pointer relative overflow-hidden
-        transition-all duration-300
+        transition-all duration-300 select-none
+        ${isExpanded ? "border-accent/40 shadow-lg shadow-accent/5" : ""}
       `}
     >
       <div className="flex items-start justify-between">
@@ -61,7 +70,27 @@ export default function TrailCard({ name, noteCount, onClick }: TrailCardProps) 
             </p>
           </div>
         </div>
-        <ChevronRight className="w-4 h-4 text-text-muted group-hover:text-text-secondary group-hover:translate-x-0.5 transition-all" />
+
+        <div className="flex items-center gap-1.5">
+          {onOpenModal && (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                onOpenModal(e);
+              }}
+              className="p-1 rounded-lg text-text-muted hover:text-accent-light hover:bg-surface-overlay transition-colors"
+              title="Abrir detalhes da trilha"
+            >
+              <ChevronRight className="w-4 h-4" />
+            </button>
+          )}
+          <ChevronRight
+            className={`w-4 h-4 text-text-muted transition-transform duration-200 ${
+              isExpanded ? "rotate-90 text-accent-light" : "group-hover:translate-x-0.5"
+            }`}
+          />
+        </div>
       </div>
 
       {/* Progress bar aesthetic */}
@@ -71,6 +100,6 @@ export default function TrailCard({ name, noteCount, onClick }: TrailCardProps) 
           style={{ width: `${Math.min((noteCount / 35) * 100, 100)}%` }}
         />
       </div>
-    </button>
+    </div>
   );
 }

@@ -8,11 +8,17 @@ import {
   TrendingUp,
   Sparkles,
   ArrowRight,
+  ChevronDown,
+  ChevronUp,
+  FolderTree,
+  ExternalLink,
+  Loader2,
 } from "lucide-react";
 import StatCard from "@/components/StatCard";
 import TrailCard from "@/components/TrailCard";
 import NotePreview from "@/components/NotePreview";
 import NoteModal from "@/components/NoteModal";
+import TrailNotesModal from "@/components/TrailNotesModal";
 
 interface FolderInfo {
   folder: string;
@@ -37,7 +43,10 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [selectedNote, setSelectedNote] = useState<string | null>(null);
   const [folderNotes, setFolderNotes] = useState<Record<string, string[]>>({});
+  const [loadingFolder, setLoadingFolder] = useState<string | null>(null);
   const [expandedFolder, setExpandedFolder] = useState<string | null>(null);
+  const [showAllInline, setShowAllInline] = useState<Record<string, boolean>>({});
+  const [modalTrail, setModalTrail] = useState<string | null>(null);
 
   useEffect(() => {
     fetch("/api/vault/notes")
@@ -57,12 +66,15 @@ export default function DashboardPage() {
     setExpandedFolder(folderName);
 
     if (!folderNotes[folderName]) {
+      setLoadingFolder(folderName);
       try {
         const res = await fetch(`/api/vault/notes?directory=${encodeURIComponent(folderName)}`);
         const data = await res.json();
         setFolderNotes((prev) => ({ ...prev, [folderName]: data.files || [] }));
       } catch {
         setFolderNotes((prev) => ({ ...prev, [folderName]: [] }));
+      } finally {
+        setLoadingFolder(null);
       }
     }
   };
@@ -152,39 +164,114 @@ export default function DashboardPage() {
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 stagger-children">
-          {overview.topFolders.map((folder) => (
-            <div key={folder.folder}>
-              <TrailCard
-                name={folder.folder}
-                noteCount={folder.count}
-                onClick={() => handleTrailClick(folder.folder)}
-              />
+          {overview.topFolders.map((folder) => {
+            const isExpanded = expandedFolder === folder.folder;
+            const isLoadingThis = loadingFolder === folder.folder;
+            const allNotes = folderNotes[folder.folder] || [];
+            const isShowingAll = showAllInline[folder.folder] || allNotes.length <= 5;
+            const displayedNotes = isShowingAll ? allNotes : allNotes.slice(0, 5);
 
-              {/* Expanded folder notes */}
-              {expandedFolder === folder.folder && folderNotes[folder.folder] && (
-                <div className="mt-2 ml-3 space-y-1.5 animate-slide-up">
-                  {folderNotes[folder.folder].slice(0, 5).map((notePath) => (
-                    <button
-                      key={notePath}
-                      onClick={() => setSelectedNote(notePath)}
-                      className="flex items-center gap-2 w-full text-left px-3 py-2 rounded-lg hover:bg-surface-overlay transition-colors group"
-                    >
-                      <FileText className="w-3.5 h-3.5 text-text-muted group-hover:text-accent-light transition-colors" />
-                      <span className="text-sm text-text-secondary group-hover:text-text-primary truncate transition-colors">
-                        {notePath.split("/").pop()?.replace(".md", "")}
-                      </span>
-                      <ArrowRight className="w-3 h-3 text-text-muted ml-auto opacity-0 group-hover:opacity-100 transition-opacity" />
-                    </button>
-                  ))}
-                  {folderNotes[folder.folder].length > 5 && (
-                    <p className="text-xs text-text-muted px-3 py-1">
-                      +{folderNotes[folder.folder].length - 5} mais notas
-                    </p>
-                  )}
-                </div>
-              )}
-            </div>
-          ))}
+            return (
+              <div key={folder.folder} className="flex flex-col">
+                <TrailCard
+                  name={folder.folder}
+                  noteCount={folder.count}
+                  isExpanded={isExpanded}
+                  onClick={() => handleTrailClick(folder.folder)}
+                  onOpenModal={() => setModalTrail(folder.folder)}
+                />
+
+                {/* Expanded folder notes with smooth scroll */}
+                {isExpanded && (
+                  <div className="mt-2.5 p-3 rounded-2xl bg-[#12121a]/90 border border-zinc-800/80 shadow-xl animate-slide-up">
+                    {isLoadingThis ? (
+                      <div className="py-6 flex flex-col items-center justify-center gap-2 text-zinc-500 text-xs">
+                        <Loader2 className="w-4 h-4 animate-spin text-accent-light" />
+                        <span>Carregando notas...</span>
+                      </div>
+                    ) : allNotes.length === 0 ? (
+                      <p className="text-xs text-zinc-500 py-3 text-center">
+                        Nenhuma nota encontrada nesta pasta.
+                      </p>
+                    ) : (
+                      <>
+                        <div className="max-h-[320px] overflow-y-auto space-y-1.5 pr-1">
+                          {displayedNotes.map((notePath) => {
+                            const parts = notePath.split("/");
+                            const filename = parts.pop() || notePath;
+                            const title = filename.replace(/\.md$/, "");
+                            const subfolder = parts.length > 1 ? parts.slice(1).join(" / ") : null;
+
+                            return (
+                              <button
+                                key={notePath}
+                                onClick={() => setSelectedNote(notePath)}
+                                className="w-full flex items-center justify-between gap-2 px-3 py-2 rounded-xl bg-zinc-900/50 hover:bg-zinc-800/80 border border-zinc-800/60 hover:border-accent/40 text-left transition-all group"
+                              >
+                                <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                                  <FileText className="w-3.5 h-3.5 text-zinc-500 group-hover:text-accent-light flex-shrink-0 transition-colors" />
+                                  <div className="min-w-0 flex-1">
+                                    <span className="text-xs text-zinc-200 group-hover:text-white font-medium truncate block transition-colors">
+                                      {title}
+                                    </span>
+                                    {subfolder && (
+                                      <span className="text-[10px] text-zinc-500 group-hover:text-zinc-400 truncate block flex items-center gap-1 mt-0.5">
+                                        <FolderTree className="w-2.5 h-2.5 flex-shrink-0 text-accent-light/60" />
+                                        {subfolder}
+                                      </span>
+                                    )}
+                                  </div>
+                                </div>
+                                <ArrowRight className="w-3 h-3 text-zinc-500 group-hover:text-accent-light opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0 ml-1" />
+                              </button>
+                            );
+                          })}
+                        </div>
+
+                        {/* Action Bar below notes */}
+                        <div className="pt-2.5 mt-2 border-t border-zinc-800/80 flex items-center justify-between gap-2">
+                          {allNotes.length > 5 && (
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setShowAllInline((prev) => ({
+                                  ...prev,
+                                  [folder.folder]: !prev[folder.folder],
+                                }))
+                              }
+                              className="flex items-center gap-1 text-[11px] font-medium text-accent-light hover:text-white px-2 py-1 rounded-lg hover:bg-accent/10 transition-colors"
+                            >
+                              {isShowingAll ? (
+                                <>
+                                  <ChevronUp className="w-3 h-3" />
+                                  Recolher ({allNotes.length})
+                                </>
+                              ) : (
+                                <>
+                                  <ChevronDown className="w-3 h-3" />
+                                  Ver todas ({allNotes.length})
+                                </>
+                              )}
+                            </button>
+                          )}
+
+                          <button
+                            type="button"
+                            onClick={() => setModalTrail(folder.folder)}
+                            className="flex items-center gap-1 text-[11px] text-zinc-400 hover:text-zinc-200 px-2 py-1 rounded-lg hover:bg-zinc-800 transition-colors ml-auto"
+                            title="Abrir painel com busca e filtros"
+                          >
+                            <ExternalLink className="w-3 h-3 text-accent-light" />
+                            <span>Abrir painel</span>
+                          </button>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </div>
       </section>
 
@@ -208,6 +295,14 @@ export default function DashboardPage() {
           ))}
         </div>
       </section>
+
+      {/* Trail Notes Modal */}
+      <TrailNotesModal
+        folderName={modalTrail}
+        isOpen={!!modalTrail}
+        onClose={() => setModalTrail(null)}
+        onSelectNote={setSelectedNote}
+      />
 
       {/* Note Modal */}
       {selectedNote && (
